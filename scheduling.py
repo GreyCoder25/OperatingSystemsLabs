@@ -25,6 +25,8 @@ new_package_process = False
 interactive_process_finished = False
 package_process_finished = False
 
+completed_processes = []
+
 
 def print_info(current_iteration, package_queue, interactive_queue):
 
@@ -42,28 +44,41 @@ def print_info(current_iteration, package_queue, interactive_queue):
     print("------------------------------------------------\n")
 
 
-# print_info(current_time, package_processes_queue, interactive_processes_queue)
+def print_table(completed, package, interactive):       # TODO fix ugly output
+
+    print("Number | appear time | perf time | start time | finish time | wait time | full time")
+    for index, proc in enumerate(completed + package + interactive):
+        print("  %d    |   %d        |   %d            |   %d   |   %d   |   %d   |   %d   " % (index,
+                                                                                 proc.appear_time, proc.perf_time,
+                                                                                 proc.start_perf_time, proc.finish_time,
+                                                                                 proc.wait_time,
+                                                                                 proc.perf_time + proc.wait_time))
+
 
 while True:
     if rnd.random() < NEW_PROCESS_PROBABILITY:
         if rnd.random() < NEW_PACKAGE_PROCESS_PROBABILITY:
-            package_processes_queue.append(pr.Process(1 + rnd.randint(1, 5)))
+            package_processes_queue.append(pr.Process(1 + rnd.randint(1, 5), current_time))
             new_package_process = True
             print("Package process %d added. Time to finish: %d" % (len(package_processes_queue) - 1,
                                                                     package_processes_queue[-1].time_to_finish))
         else:
-            interactive_processes_queue.append(pr.Process(3 + rnd.randint(1, 5)))
+            interactive_processes_queue.append(pr.Process(3 + rnd.randint(1, 5), current_time))
             print("Interactive process %d added. Time to finish: %d" % (len(interactive_processes_queue) - 1,
                                                                     interactive_processes_queue[-1].time_to_finish))
     finished_process_index = -1
     if current_queue == 'i':
         for index, proc in enumerate(interactive_processes_queue):
             if index == current_interactive_process:
+                if proc.time_to_finish == proc.perf_time:
+                    proc.start_perf_time = current_time
                 proc.execute()
                 if proc.time_to_finish == 0:
+                    proc.finish_time = current_time
                     interactive_process_finished = True
                     finished_process_index = index
                     print("Interactive process %d finished." % index)
+                    completed_processes.append(proc)
             else:
                 proc.wait()
         for proc in package_processes_queue:
@@ -97,11 +112,15 @@ while True:
         finished_process_index = -1
         for index, proc in enumerate(package_processes_queue):
             if index == current_package_process:
+                if proc.time_to_finish == proc.perf_time:
+                    proc.start_perf_time = current_time
                 proc.execute()
                 if proc.time_to_finish == 0:
+                    proc.finish_time = current_time
                     package_process_finished = True
                     finished_process_index = index
                     print("Package process %d finished." % index)
+                    completed_processes.append(proc)
             else:
                 proc.wait()
         for proc in interactive_processes_queue:
@@ -124,6 +143,8 @@ while True:
         break
 
     print_info(current_time, package_processes_queue, interactive_processes_queue)
+
+print_table(completed_processes, package_processes_queue, interactive_processes_queue)
 
 
 
